@@ -14,12 +14,13 @@ if [ "x$TO_VERSION" = "x" ]; then
 	exit 1
 fi
 
+
+
 echo Upgrading from $FROM_VERSION to $TO_VERSION
 
-#Clean the built part of the maven repository
-echo "Cleaning previously built stuff"
-#TODO Renable this once we start doing the real core build
-#rm -rfv /root/.m2/repository/org/wildfly/*
+#Clean the built part of the maven repository (so that as we move up versions the image does not grow and grow)
+echo "Cleaning previously built stuff from the persistent image"
+rm -rf /root/.m2/repository/org/wildfly/*
 
 #Check that the checkouts folder was mapped, if not create a temo one and cd into it
 if [ ! -d "/checkouts" ]; then
@@ -32,20 +33,29 @@ if [ ! -d "/checkouts" ]; then
 fi
 cd /checkouts
 
-#Check if the wildfly-legacy-test checkout folder exists, and clone or update
-if [ ! -d "/checkouts/wildfly-legacy-test" ]; then
-    #TODO Try the ssh url
-    echo "The wildfly-legacy-test checkout folder does not exist. Cloning git@github.com:wildfly/wildfly-legacy-test.git"
-    git clone git@github.com:wildfly/wildfly-legacy-test.git
-    cd wildfly-legacy-test
+
+
+#Check if the wildfly checkout folder exists, and clone or update
+if [ ! -d "/checkouts/wildfly" ]; then
+    echo "The wildfly checkout folder does not exist. Cloning git@github.com:wildfly/wildfly.git"
+    git clone git@github.com:wildfly/wildfly.git
+fi
+
+
+#Check if the wildfly-core checkout folder exists, and clone or update
+if [ ! -d "/checkouts/wildfly-core" ]; then
+    echo "The wildfly-core checkout folder does not exist. Cloning git@github.com:wildfly/wildfly-core.git"
+    git clone git@github.com:wildfly/wildfly-core.git
+    cd wildfly-core
 else
-    echo "The wildfly-legacy-test checkout folder exists. Refreshing the latest"
+    echo "The wildfly-core checkout folder exists. Refreshing the latest"
     cd wildfly-legacy-test
     git reset --hard HEAD^
     git checkout master
     git fetch origin
     git reset --hard origin/master
 fi
+
 
 BRANCH_NAME=rel$TO_VERSION
 #TODO this will give an error, but nothing serious if $BRANCH_NAME does not exist. It would be nice though to check somehow and only delete if it exists
@@ -106,4 +116,113 @@ echo ""
 echo "=================================================================================================="
 echo " Doing the build "
 echo "=================================================================================================="
-mvn clean install
+
+#Run the build with all the flags set
+mvn clean install -Pjboss-release -Prelease -DallTests
+BUILD_STATUS=$?
+if [ $BUILD_STATUS != 0 ]; then
+    exit $BUILD_STATUS
+fi
+
+echo ""
+echo "=================================================================================================="
+echo " Verifying WildFly Full still builds"
+echo "=================================================================================================="
+
+# Refresh WildFly to make sure we have the latest
+cd ../wildfly
+git reset --hard HEAD^
+git checkout master
+git fetch origin
+git reset --hard origin/master
+cd ..
+# Build WildFly skipping tests, but overriding the core version
+mvn clean install -DallTests -DskipTests -Dversion.org.wildfly.core=$TO_VERSION
+BUILD_STATUS=$?
+if [ $BUILD_STATUS != 0 ]; then
+    exit $BUILD_STATUS
+fi
+
+
+echo ""
+echo "=================================================================================================="
+echo " Committing the wildfly-core changes, and pushing to the upstream $BRANCH_NAME branch"
+echo "=================================================================================================="
+cd ../wildfly-core
+git commit -am "Prepare for the $TO_VERSION release"
+git push origin $BRANCH_NAME
+git checkout master
+git merge --ff-only $BRANCH_NAME
+
+
+echo ""
+echo "=================================================================================================="
+echo " Deploying the core release to the staging repository"
+echo "=================================================================================================="
+
+# Deploy the core release to the staging repository
+mvn deploy -Pjboss-release -Prelease -DallTests -DskipTests
+BUILD_STATUS=$?
+if [ $BUILD_STATUS != 0 ]; then
+    exit $BUILD_STATUS
+fi
+
+# Action needed to close the repository
+echo ""
+echo "=================================================================================================="
+echo "Now close the staging repository on nexus, and release it."
+echo "=================================================================================================="
+RESPONSE=""
+while [ "x$RESPONSE" = "x" ]; do
+    echo "Once it has been released enter 'Y' to continue performing the tag. To exit enter 'N':"
+    read RESPONSE
+    if [ "$RESPONSE" = "N" ]; then
+        echo "Exiting so you can investigate...."
+        exit 1
+    fi
+    if [ "$RESPONSE" != "Y" ]; then
+        echo "Unknown answer '$RESPONSE'"
+        RESPONSE=""
+    fi
+done
+
+# Blow away the wildfly core artifacts and rebuild full.
+echo ""
+echo "=================================================================================================="
+echo "Deleting all wildfly-core artifacts from the local maven repository, and rebuilding full."
+echo "=================================================================================================="
+rm -rf /root/.m2/repository/org/wildfly/core
+cd ../wildfly
+mvn install -DallTests -DskipTests -Dversion.org.wildfly.core=$TO_VERSION
+BUILD_STATUS=$?
+if [ $BUILD_STATUS != 0 ]; then
+    exit $BUILD_STATUS
+fi
+
+echo ""
+echo "=================================================================================================="
+echo "Push the tag"
+echo "=================================================================================================="
+cd ../wildfly-core
+git tag $TO_VERSION
+BUILD_STATUS=$?
+if [ $BUILD_STATUS != 0 ]; then
+    exit $BUILD_STATUS
+fi
+git push origin master --tags
+BUILD_STATUS=$?
+if [ $BUILD_STATUS != 0 ]; then
+    exit $BUILD_STATUS
+fi
+
+echo ""
+echo "=================================================================================================="
+echo "All Done!!! Well, ALMOST...."
+echo "=================================================================================================="
+echo "See https://developer.jboss.org/wiki/WildFlyCoreReleaseProcess"
+echo "1) Now open a WildFly pull request upgrading the wildfly-core version to $TO_VERSION"
+echo "2) Update wildfly-core master to the next -SNAPSHOT version"
+echo "3) Cleanup/release Jira, and add the next fix version"
+echo "4) Update the CI jobs"
+
+
