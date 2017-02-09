@@ -14,6 +14,7 @@ if [ "x$TO_VERSION" = "x" ]; then
 	exit 1
 fi
 
+
 echo Upgrading from $FROM_VERSION to $TO_VERSION
 
 BRANCH_NAME=rel$TO_VERSION
@@ -52,23 +53,36 @@ echo "==========================================================================
 echo " Remaining -SNAPSHOT versions"
 echo "=================================================================================================="
 git grep "\-SNAPSHOT"
-#TODO this ends up using more, and we can't get user input yet
-#echo ""
-#echo "=================================================================================================="
-#echo " Replacements made "
-#echo "=================================================================================================="
-#git diff
+echo ""
+echo "=================================================================================================="
+echo " Replacements made "
+echo "=================================================================================================="
+git --no-pager diff
 
-# TODO I cannot get the read command to work when running in docker, so I can't get user input (the intent is that N will abort, Y will proceed)
 # User input to verify it was correct
-#echo "Do the differences above look correct? (Y/N)"
-#read RESPONSE
-#echo answer was $RESPONSE
+RESPONSE=""
+while [ "x$RESPONSE" = "x" ]; do
+    echo "Do the differences above look correct? (Y/N)"
+    read RESPONSE
+    if [ "$RESPONSE" = "N" ]; then
+        echo "Exiting so you can investigate...."
+        exit 1
+    fi
+    if [ "$RESPONSE" != "Y" ]; then
+        echo "Unknown answer '$RESPONSE'"
+        RESPONSE=""
+    fi
+done
+
+
 
 # TODO mount the real maven repository so that the build doesn't take forever downloading stuff
 # TODO it would be good to be able to have whatever is built here go into the docker filesystem and not update the local one.
 
 # Do the build
-echo "skipping doing the build for now"
+echo ""
+echo "=================================================================================================="
+echo " Doing the build "
+echo "=================================================================================================="
 mvn clean install
 

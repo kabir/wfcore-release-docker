@@ -1,8 +1,3 @@
-# To run this docker image
-#
-#   docker run wildfly-core-build-temp ./do-release.sh <SNAPSHOT-VERSION> <RELEASE-VERSION>
-
-
 # Base on the OpenJDK 8 image
 FROM openjdk:8-jdk
 
@@ -18,8 +13,8 @@ RUN wget http://apache.mirror.anlx.net/maven/maven-3/3.3.9/binaries/apache-maven
 # Get a base version of wildfly-core 
 #RUN git clone https://github.com/kabir/wildfly-legacy-test.git
 
+#Add the script that will do the work
 ADD do-release.sh /do-release.sh
-
 
 
 
