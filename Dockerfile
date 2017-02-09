@@ -7,13 +7,11 @@
 FROM openjdk:8-jdk
 
 # Download and extract maven into the image
-RUN wget http://apache.mirror.anlx.net/maven/maven-3/3.3.9/binaries/apache-maven-3.3.9-bin.tar.gz
-RUN tar -zxf apache-maven-3.3.9-bin.tar.gz
-RUN cp -R apache-maven-3.3.9 /usr/local
-RUN ln -s /usr/local/apache-maven-3.3.9/bin/mvn /usr/bin/mvn
-
-# Install git into the image
-RUN apt-get install git
+RUN wget http://apache.mirror.anlx.net/maven/maven-3/3.3.9/binaries/apache-maven-3.3.9-bin.tar.gz && \
+    tar -zxf apache-maven-3.3.9-bin.tar.gz && \
+    cp -R apache-maven-3.3.9 /usr/local && \
+    ln -s /usr/local/apache-maven-3.3.9/bin/mvn /usr/bin/mvn && \
+    apt-get install git
 
 #TODO Figure out how to mount the local maven repository, but somehow filter out the stuff built by this job
 
