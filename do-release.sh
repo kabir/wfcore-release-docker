@@ -35,8 +35,8 @@ cd /checkouts
 #Check if the wildfly-legacy-test checkout folder exists, and clone or update
 if [ ! -d "/checkouts/wildfly-legacy-test" ]; then
     #TODO Try the ssh url
-    echo "The wildfly-legacy-test checkout folder does not exist. Cloning https://github.com/wildfly/wildfly-legacy-test.git"
-    git clone https://github.com/wildfly/wildfly-legacy-test.git
+    echo "The wildfly-legacy-test checkout folder does not exist. Cloning git@github.com:wildfly/wildfly-legacy-test.git"
+    git clone git@github.com:wildfly/wildfly-legacy-test.git
     cd wildfly-legacy-test
 else
     echo "The wildfly-legacy-test checkout folder exists. Refreshing the latest"
