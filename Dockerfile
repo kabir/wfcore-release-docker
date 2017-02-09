@@ -18,7 +18,7 @@ RUN apt-get install git
 #TODO Figure out how to mount the local maven repository, but somehow filter out the stuff built by this job
 
 # Get a base version of wildfly-core 
-RUN git clone https://github.com/kabir/wildfly-legacy-test.git
+#RUN git clone https://github.com/kabir/wildfly-legacy-test.git
 
 ADD do-release.sh /do-release.sh
 
