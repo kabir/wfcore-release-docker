@@ -14,7 +14,9 @@ RUN wget http://apache.mirror.anlx.net/maven/maven-3/3.3.9/binaries/apache-maven
 #RUN git clone https://github.com/kabir/wildfly-legacy-test.git
 
 #Add the script that will do the work
-ADD do-release.sh /do-release.sh
+ADD container/clean-volume.sh /clean-volume.sh
+ADD container/do-release.sh /do-release.sh
+ADD container/file-util.sh /file-util.sh
 
 
 

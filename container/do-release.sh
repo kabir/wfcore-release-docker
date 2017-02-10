@@ -14,15 +14,10 @@ if [ "x$TO_VERSION" = "x" ]; then
 	exit 1
 fi
 
+GITHUB_REPO=git@github.com:kabir
 
 
 echo Upgrading from $FROM_VERSION to $TO_VERSION
-
-# This seemed to be a bad idea, since there are other things like
-# org/wildfly/security, org/wildfly/checkstyle, org/wildfly/openssl etc.
-#Clean the built part of the maven repository (so that as we move up versions the image does not grow and grow)
-#echo "Cleaning previously built stuff from the persistent image"
-#rm -rf /root/.m2/repository/org/wildfly/*
 
 #Check that the checkouts folder was mapped, if not create a temp one and cd into it
 if [ ! -d "/checkouts" ]; then
@@ -39,15 +34,15 @@ cd /checkouts
 
 #Check if the wildfly checkout folder exists, and clone or update
 if [ ! -d "/checkouts/wildfly" ]; then
-    echo "The wildfly checkout folder does not exist. Cloning git@github.com:wildfly/wildfly.git"
-    git clone git@github.com:wildfly/wildfly.git
+    echo "The wildfly checkout folder does not exist. Cloning $GITHUB_REPO/wildfly.git"
+    git clone $GITHUB_REPO/wildfly.git
 fi
 
 
 #Check if the wildfly-core checkout folder exists, and clone or update
 if [ ! -d "/checkouts/wildfly-core" ]; then
-    echo "The wildfly-core checkout folder does not exist. Cloning git@github.com:wildfly/wildfly-core.git"
-    git clone git@github.com:wildfly/wildfly-core.git
+    echo "The wildfly-core checkout folder does not exist. Cloning $GITHUB_REPO/wildfly-core.git"
+    git clone $GITHUB_REPO/wildfly-core.git
     cd wildfly-core
 else
     echo "The wildfly-core checkout folder exists. Refreshing the latest"
@@ -92,6 +87,22 @@ echo "==========================================================================
 echo " Remaining -SNAPSHOT versions"
 echo "=================================================================================================="
 git grep "\-SNAPSHOT"
+# User input to verify it was correct
+RESPONSE=""
+while [ "x$RESPONSE" = "x" ]; do
+echo "Do the differences above look correct? (Y/N)"
+read RESPONSE
+if [ "$RESPONSE" = "N" ]; then
+echo "Exiting so you can investigate...."
+exit 1
+fi
+if [ "$RESPONSE" != "Y" ]; then
+echo "Unknown answer '$RESPONSE'"
+RESPONSE=""
+fi
+done
+
+
 echo ""
 echo "=================================================================================================="
 echo " Replacements made "
@@ -101,7 +112,7 @@ git --no-pager diff
 # User input to verify it was correct
 RESPONSE=""
 while [ "x$RESPONSE" = "x" ]; do
-    echo "Do the differences above look correct? (Y/N)"
+    echo "Do the replacements made above look correct? (Y/N)"
     read RESPONSE
     if [ "$RESPONSE" = "N" ]; then
         echo "Exiting so you can investigate...."
@@ -120,9 +131,16 @@ echo " Doing the build "
 echo "=================================================================================================="
 
 #Run the build with all the flags set
-mvn clean install -Pjboss-release -Prelease -DallTests
+mvn clean install -Pjboss-release -Prelease -DallTests -Dmaven.test.failure.ignore --fail-at-end
 BUILD_STATUS=$?
 if [ $BUILD_STATUS != 0 ]; then
+    echo "=================================================================================================="
+    echo " Build failed "
+    echo "  ./run-docker-ls.sh <dir>"
+    echo "and"
+    echo "  ./run-docker-more.sh <dir>"
+    echo "to get more information about the failures"
+    echo "=================================================================================================="
     exit $BUILD_STATUS
 fi
 
