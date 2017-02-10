@@ -138,7 +138,7 @@ echo "==========================================================================
 # Assume.assumeFalse(System.hasProperty("wildfly.docker.release")
 #
 # The -Dwildfly.docker.release property is to conditionally ignore tests which assume not running as root
-mvn clean install -Dwildfly.docker.release -Pjboss-release -Prelease -DallTests--fail-at-end -Dmaven.test.failure.ignore
+mvn clean install -Dwildfly.docker.release -Pjboss-release -Prelease -DallTests --fail-at-end -Dmaven.test.failure.ignore
 
 BUILD_STATUS=$?
 if [ $BUILD_STATUS != 0 ]; then
@@ -164,6 +164,8 @@ if [ $BUILD_STATUS != 0 ]; then
     done
 fi
 
+
+# TODO remove this
 exit 1
 
 
