@@ -131,7 +131,15 @@ echo " Doing the build "
 echo "=================================================================================================="
 
 #Run the build with all the flags set
-mvn clean install -Pjboss-release -Prelease -DallTests -Dmaven.test.failure.ignore --fail-at-end
+
+# !!!!!!!!
+# !!!! TODO get rid of -Dmaven.test.failureignore   !!!!
+# Or we will never get an error. Instead we should patch the four tests failing from running under root with
+# Assume.assumeFalse(System.hasProperty("wildfly.docker.release")
+#
+# The -Dwildfly.docker.release property is to conditionally ignore tests which assume not running as root
+mvn clean install -Dwildfly.docker.release -Pjboss-release -Prelease -DallTests--fail-at-end -Dmaven.test.failure.ignore
+
 BUILD_STATUS=$?
 if [ $BUILD_STATUS != 0 ]; then
     echo "=================================================================================================="
@@ -139,10 +147,25 @@ if [ $BUILD_STATUS != 0 ]; then
     echo "  ./run-docker-ls.sh <dir>"
     echo "and"
     echo "  ./run-docker-more.sh <dir>"
-    echo "to get more information about the failures"
+    echo "from another terminal window to get more information about the failures."
+    echo "Then enter 'Y' to proceed with the release, or 'N' to abort:"
     echo "=================================================================================================="
-    exit $BUILD_STATUS
+
+    RESPONSE=""
+    while [ "x$RESPONSE" = "x" ]; do
+        read RESPONSE
+        if [ "$RESPONSE" = "N" ]; then
+            exit $BUILD_STATUS
+        fi
+        if [ "$RESPONSE" != "Y" ]; then
+            echo "Unknown answer '$RESPONSE'. Enter 'Y' to proceed with the release, or 'N' to abort:"
+            RESPONSE=""
+        fi
+    done
 fi
+
+exit 1
+
 
 echo ""
 echo "=================================================================================================="
