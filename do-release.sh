@@ -18,11 +18,13 @@ fi
 
 echo Upgrading from $FROM_VERSION to $TO_VERSION
 
+# This seemed to be a bad idea, since there are other things like
+# org/wildfly/security, org/wildfly/checkstyle, org/wildfly/openssl etc.
 #Clean the built part of the maven repository (so that as we move up versions the image does not grow and grow)
-echo "Cleaning previously built stuff from the persistent image"
-rm -rf /root/.m2/repository/org/wildfly/*
+#echo "Cleaning previously built stuff from the persistent image"
+#rm -rf /root/.m2/repository/org/wildfly/*
 
-#Check that the checkouts folder was mapped, if not create a temo one and cd into it
+#Check that the checkouts folder was mapped, if not create a temp one and cd into it
 if [ ! -d "/checkouts" ]; then
     echo "No checkouts folder was exists so creating a temp one. To cache this in the furure between all jobs:"
     echo "-Create a persistent docker volume which can be reused by running (this only needs doing once):"
