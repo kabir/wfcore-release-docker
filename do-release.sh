@@ -49,7 +49,7 @@ if [ ! -d "/checkouts/wildfly-core" ]; then
     cd wildfly-core
 else
     echo "The wildfly-core checkout folder exists. Refreshing the latest"
-    cd wildfly-legacy-test
+    cd wildfly-core
     git reset --hard HEAD^
     git checkout master
     git fetch origin
@@ -185,6 +185,8 @@ while [ "x$RESPONSE" = "x" ]; do
         RESPONSE=""
     fi
 done
+
+
 
 # Blow away the wildfly core artifacts and rebuild full.
 echo ""
